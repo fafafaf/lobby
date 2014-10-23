@@ -615,17 +615,26 @@ def md5(file_name):
 def uniqueID(user, session):
     ''' This is used to uniquely identify a user's machine to prevent smurfing. '''
     try:
-        if os.path.isfile("uid.dll"):
-            mydll = cdll.LoadLibrary("uid.dll")
+        import struct
+        if(struct.calcsize('P')==8): # we need the loader on 64bits too
+                import subprocess
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                if os.path.isfile("uid.exe"):
+                    return subprocess.Popen(["uid.exe", session, os.path.join(LOG_DIR, "uid.log")], startupinfo=startupinfo, stdout=subprocess.PIPE).communicate()[0]
+                else:
+                    return subprocess.Popen([os.path.join("lib", "uid.exe"), session, os.path.join(LOG_DIR, "uid.log")], startupinfo=startupinfo, stdout=subprocess.PIPE).communicate()[0]
         else:
-            mydll = cdll.LoadLibrary(os.path.join("lib", "uid.dll"))
+            if os.path.isfile("uid.dll"):
+                mydll = cdll.LoadLibrary("uid.dll")
+            else:
+                mydll = cdll.LoadLibrary(os.path.join("lib", "uid.dll"))
 
-        mydll.uid.restype = c_char_p
-        baseString = (mydll.uid(session, os.path.join(LOG_DIR, "uid.log")) )
-        DllCanUnloadNow()
+            mydll.uid.restype = c_char_p
+            baseString = (mydll.uid(session, os.path.join(LOG_DIR, "uid.log")) )
+            DllCanUnloadNow()
 
-        return baseString
-
+            return baseString
     except:
         logger.error("UniqueID Failure", exc_info=sys.exc_info())
         return None
